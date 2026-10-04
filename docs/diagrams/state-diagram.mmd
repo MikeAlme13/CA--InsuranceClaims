@@ -1,0 +1,24 @@
+%% Insurance Claims DApp - Claim State Diagram
+%% Paste into https://mermaid.live to edit and export as PNG/SVG
+stateDiagram-v2
+    direction LR
+
+    [*] --> Submitted : submitClaim(amount, evidenceHash)<br/>[policy.active && amount <= coverage]
+
+    Submitted --> Approved : approveClaim(id)<br/>[onlyInsurer]
+    Submitted --> Rejected : rejectClaim(id)<br/>[onlyInsurer]
+
+    Approved --> Paid : payClaim(id)<br/>[onlyInsurer && balance >= amount]
+
+    Paid --> [*]
+    Rejected --> [*]
+
+    note right of Submitted
+        enum ClaimStatus
+        { Submitted, Approved, Rejected, Paid }
+    end note
+
+    note right of Paid
+        status set to Paid BEFORE transfer
+        (checks-effects-interactions)
+    end note

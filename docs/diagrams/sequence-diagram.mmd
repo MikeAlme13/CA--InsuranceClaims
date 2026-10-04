@@ -1,0 +1,41 @@
+%% Insurance Claims DApp - Sequence Diagram
+%% Paste into https://mermaid.live to edit and export as PNG/SVG
+sequenceDiagram
+    autonumber
+    actor PH as Policyholder (EOA)
+    actor IN as Insurer (EOA)
+    participant SC as InsuranceClaims.sol
+    participant BC as Ethereum / Ganache
+
+    Note over IN,SC: Setup
+    IN->>SC: deploy{value: 10 ether}
+    SC-->>BC: insurer = msg.sender; reserve funded
+
+    IN->>SC: createPolicy(holder, premium, coverage)
+    Note right of SC: onlyInsurer<br/>active = false
+    SC-->>BC: emit PolicyCreated
+
+    Note over PH,SC: Policy activation
+    PH->>SC: payPremium(){value: premium}
+    Note right of SC: require(p.holder == msg.sender)<br/>require(msg.value == p.premium)<br/>active = true
+
+    Note over PH,SC: Claim lifecycle
+    PH->>PH: evidenceHash = keccak256(document)
+    PH->>SC: submitClaim(amount, evidenceHash)
+    Note right of SC: require(p.active)<br/>require(amount <= p.coverage)<br/>status = Submitted
+    SC-->>BC: emit ClaimSubmitted(id, claimant, amount)
+
+    IN->>SC: approveClaim(id)
+    Note right of SC: onlyInsurer<br/>require(status == Submitted)<br/>status = Approved
+    SC-->>BC: emit ClaimDecided(id, Approved)
+
+    IN->>SC: payClaim(id)
+    Note right of SC: require(status == Approved)<br/>require(balance >= amount)<br/>status = Paid BEFORE transfer
+    SC->>PH: transfer(amount)
+    SC-->>BC: emit ClaimPaid(id, to, amount)
+
+    alt Claim rejected instead
+        IN->>SC: rejectClaim(id)
+        Note right of SC: status = Rejected (terminal)
+        SC-->>BC: emit ClaimDecided(id, Rejected)
+    end
