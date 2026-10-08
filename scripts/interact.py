@@ -1,97 +1,194 @@
-from web3 import Web3
+"""
+Insurance Claims DApp - Web3 interaction script.
+
+Runs the full claim lifecycle against a contract already deployed on Ganache:
+    createPolicy -> payPremium -> submitClaim -> approveClaim -> payClaim
+
+Usage:
+    python scripts/interact.py
+    CONTRACT_ADDRESS=0x... python scripts/interact.py
+
+The contract address changes every time you redeploy from Remix, so pass it
+through the CONTRACT_ADDRESS environment variable (run_demo.sh does this for
+you) or edit DEFAULT_CONTRACT_ADDRESS below.
+"""
+
 import json
+import os
+import sys
+from pathlib import Path
 
-# -----------------------------
-# 1. Conectar ao Ganache
-# -----------------------------
-w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:7545"))
-print("Conectado ao Ganache?", w3.is_connected())
+from web3 import Web3
 
-# -----------------------------
-# 2. Definir contas
-# -----------------------------
-insurer = w3.eth.accounts[0]   # seguradora
-holder = w3.eth.accounts[1]    # segurado
+# Paths are resolved from the repository root, so the script works no matter
+# which directory you run it from.
+ROOT = Path(__file__).resolve().parent.parent
+ABI_PATH = ROOT / "abi" / "InsuranceClaims.json"
 
-print("Insurer:", insurer)
-print("Holder:", holder)
+GANACHE_URL = "http://127.0.0.1:7545"
+DEFAULT_CONTRACT_ADDRESS = "0x0687ab54002cd89be3c30da43252d4752f70e9fd"
 
-# -----------------------------
-# 3. Carregar ABI
-# -----------------------------
-with open("abi/InsuranceClaims.json") as f:
+PREMIUM = 10       # wei
+COVERAGE = 100     # wei
+CLAIM_AMOUNT = 50  # wei
+
+
+def tx_hex(value):
+    """Return a 0x-prefixed hash string across hexbytes versions."""
+    if hasattr(value, "to_0x_hex"):
+        return value.to_0x_hex()
+    text = value.hex()
+    return text if text.startswith("0x") else "0x" + text
+
+
+def show_events(contract, event_name, receipt):
+    """Print every log of one event type found in a receipt, and return them."""
+    try:
+        logs = getattr(contract.events, event_name)().process_receipt(receipt)
+    except Exception as exc:  # pragma: no cover - depends on web3 version
+        print("    (could not decode {}: {})".format(event_name, exc))
+        return []
+    for log in logs:
+        args = dict(log["args"])
+        print("    event {}: {}".format(event_name, args))
+    return logs
+
+
+# ---------------------------------------------------------------------------
+# 1. Connect to Ganache
+# ---------------------------------------------------------------------------
+w3 = Web3(Web3.HTTPProvider(GANACHE_URL))
+
+if not w3.is_connected():
+    print("ERROR: cannot reach Ganache at {}".format(GANACHE_URL))
+    print("Open Ganache and click Quickstart, then run this script again.")
+    sys.exit(1)
+
+print("Connected to Ganache at {}".format(GANACHE_URL))
+
+# ---------------------------------------------------------------------------
+# 2. Accounts
+# ---------------------------------------------------------------------------
+insurer = w3.eth.accounts[0]       # account 0 - the insurer, deployed the contract
+policyholder = w3.eth.accounts[1]  # account 1 - the policyholder
+
+print("Insurer     (account 0): {}".format(insurer))
+print("Policyholder(account 1): {}".format(policyholder))
+
+# ---------------------------------------------------------------------------
+# 3. Load the ABI
+# ---------------------------------------------------------------------------
+with open(ABI_PATH) as f:
     abi = json.load(f)
 
-# -----------------------------
-# 4. Endereço do contrato
-# -----------------------------
-contract_address = w3.to_checksum_address("0x0687ab54002cd89be3c30da43252d4752f70e9fd")
+# ---------------------------------------------------------------------------
+# 4. Attach to the deployed contract
+# ---------------------------------------------------------------------------
+raw_address = os.environ.get("CONTRACT_ADDRESS", DEFAULT_CONTRACT_ADDRESS)
+contract_address = w3.to_checksum_address(raw_address)
+
+if w3.eth.get_code(contract_address) in (b"", b"0x"):
+    print("\nERROR: no contract found at {}".format(contract_address))
+    print("Deploy InsuranceClaims.sol in Remix first, copy the address, then run:")
+    print("    CONTRACT_ADDRESS=0xYourAddress python scripts/interact.py")
+    sys.exit(1)
 
 contract = w3.eth.contract(address=contract_address, abi=abi)
+print("Contract: {}".format(contract_address))
 
-# -----------------------------
-# 5. Criar apólice
-# -----------------------------
-print("\n=== Criando apólice ===")
-tx_create = contract.functions.createPolicy(holder, 10, 100).transact({
-    "from": insurer
-})
-receipt_create = w3.eth.wait_for_transaction_receipt(tx_create)
-print("Apólice criada. Tx:", tx_create.hex())
+# ---------------------------------------------------------------------------
+# 5. Balances before
+# ---------------------------------------------------------------------------
+holder_before = w3.eth.get_balance(policyholder)
+contract_before = w3.eth.get_balance(contract_address)
 
-# -----------------------------
-# 6. Pagar prêmio
-# -----------------------------
-print("\n=== Pagando prêmio ===")
-tx_premium = contract.functions.payPremium().transact({
-    "from": holder,
-    "value": 10
-})
-receipt_premium = w3.eth.wait_for_transaction_receipt(tx_premium)
-print("Prêmio pago. Tx:", tx_premium.hex())
+print("\n=== Balances before ===")
+print("Policyholder: {} wei".format(holder_before))
+print("Contract    : {} wei".format(contract_before))
 
-# -----------------------------
-# 7. Criar hash da evidência
-# -----------------------------
-evidence = "documento_exemplo"
+# ---------------------------------------------------------------------------
+# 6. Create the policy (insurer only)
+# ---------------------------------------------------------------------------
+print("\n=== createPolicy (from insurer) ===")
+tx = contract.functions.createPolicy(policyholder, PREMIUM, COVERAGE).transact(
+    {"from": insurer}
+)
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print("  tx: {}".format(tx_hex(tx)))
+show_events(contract, "PolicyCreated", receipt)
+
+# ---------------------------------------------------------------------------
+# 7. Pay the premium (activates the policy)
+# ---------------------------------------------------------------------------
+print("\n=== payPremium (from policyholder, value = {} wei) ===".format(PREMIUM))
+tx = contract.functions.payPremium().transact(
+    {"from": policyholder, "value": PREMIUM}
+)
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print("  tx: {}".format(tx_hex(tx)))
+print("  policy active: {}".format(contract.functions.policies(policyholder).call()[3]))
+
+# ---------------------------------------------------------------------------
+# 8. Hash the evidence off-chain (only the digest goes on-chain)
+# ---------------------------------------------------------------------------
+evidence = "claim_evidence_document.pdf"
 evidence_hash = w3.keccak(text=evidence)
-print("\nHash da evidência:", evidence_hash.hex())
 
-# -----------------------------
-# 8. Submeter sinistro
-# -----------------------------
-print("\n=== Submetendo sinistro ===")
-tx_claim = contract.functions.submitClaim(50, evidence_hash).transact({
-    "from": holder
-})
-receipt_claim = w3.eth.wait_for_transaction_receipt(tx_claim)
-print("Sinistro submetido. Tx:", tx_claim.hex())
+print("\n=== Evidence hash (Keccak-256) ===")
+print("  document: {}".format(evidence))
+print("  keccak256: {}".format(tx_hex(evidence_hash)))
 
-# -----------------------------
-# 9. Aprovar sinistro
-# -----------------------------
-print("\n=== Aprovando sinistro ===")
-tx_approve = contract.functions.approveClaim(0).transact({
-    "from": insurer
-})
-receipt_approve = w3.eth.wait_for_transaction_receipt(tx_approve)
-print("Sinistro aprovado. Tx:", tx_approve.hex())
+# ---------------------------------------------------------------------------
+# 9. Submit the claim
+# ---------------------------------------------------------------------------
+print("\n=== submitClaim (from policyholder, {} wei) ===".format(CLAIM_AMOUNT))
+tx = contract.functions.submitClaim(CLAIM_AMOUNT, evidence_hash).transact(
+    {"from": policyholder}
+)
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print("  tx: {}".format(tx_hex(tx)))
+submitted = show_events(contract, "ClaimSubmitted", receipt)
 
-# -----------------------------
-# 10. Pagar sinistro
-# -----------------------------
-print("\n=== Pagando sinistro ===")
-tx_pay = contract.functions.payClaim(0).transact({
-    "from": insurer
-})
-receipt_pay = w3.eth.wait_for_transaction_receipt(tx_pay)
-print("Sinistro pago. Tx:", tx_pay.hex())
+# Read the id back from the event rather than assuming 0: the contract may
+# already hold claims created earlier from Remix.
+if submitted:
+    claim_id = submitted[0]["args"]["id"]
+else:
+    print("ERROR: no ClaimSubmitted event found, cannot continue.")
+    sys.exit(1)
 
-# -----------------------------
-# 11. Saldos finais
-# -----------------------------
-print("\n=== Saldos finais ===")
-print("Saldo do segurado:", w3.eth.get_balance(holder))
-print("Saldo da seguradora:", w3.eth.get_balance(insurer))
+print("  claim id: {}".format(claim_id))
 
-print("\nFluxo completo executado com sucesso!")
+# ---------------------------------------------------------------------------
+# 10. Approve the claim (insurer only)
+# ---------------------------------------------------------------------------
+print("\n=== approveClaim({}) (from insurer) ===".format(claim_id))
+tx = contract.functions.approveClaim(claim_id).transact({"from": insurer})
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print("  tx: {}".format(tx_hex(tx)))
+show_events(contract, "ClaimDecided", receipt)
+
+# ---------------------------------------------------------------------------
+# 11. Pay the claim (insurer only)
+# ---------------------------------------------------------------------------
+print("\n=== payClaim({}) (from insurer) ===".format(claim_id))
+tx = contract.functions.payClaim(claim_id).transact({"from": insurer})
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print("  tx: {}".format(tx_hex(tx)))
+show_events(contract, "ClaimPaid", receipt)
+
+# ---------------------------------------------------------------------------
+# 12. Balances after
+# ---------------------------------------------------------------------------
+holder_after = w3.eth.get_balance(policyholder)
+contract_after = w3.eth.get_balance(contract_address)
+
+print("\n=== Balances after ===")
+print("Policyholder: {} wei  (change: {:+d})".format(
+    holder_after, holder_after - holder_before))
+print("Contract    : {} wei  (change: {:+d})".format(
+    contract_after, contract_after - contract_before))
+
+status = contract.functions.claims(claim_id).call()[4]
+print("\nFinal claim status: {} (3 = Paid)".format(status))
+print("Full lifecycle completed successfully.")

@@ -20,7 +20,8 @@
 - [x] Sequence diagram — `docs/screenshots/sequence-diagram.svg` (source: `docs/diagrams/sequence-diagram.mmd`)
 - [x] State diagram — `docs/screenshots/state-diagram.svg` (source: `docs/diagrams/state-diagram.mmd`)
 - [x] Harvard references with DOIs
-- [ ] Fill in the two `[INSERT]` placeholders in `design.md`
+- [x] Fill in the two `[INSERT]` placeholders in `design.md`
+- [ ] Verify the Insurance Ireland claims figure and add it to the Harvard list in §6
 - [x] Commit 2 — `Add design notes and UML diagram`
 
 ## Weeks 2–4 — Smart contract (Stage 3 — 40%)
@@ -36,18 +37,19 @@
       - `submitClaim` with `amount > coverage` → `"Amount exceeds coverage"`
       - `payPremium` with the wrong value → `"Incorrect premium"`
 - [ ] Screenshots of the Ganache **Transactions**, **Blocks** and **Events** tabs
-- [ ] All screenshots saved in `docs/screenshots/`
+- [ ] All screenshots saved in `docs/screenshots/` — see `docs/screenshot-guide.md` for the exact steps
 
 ## Weeks 3–4 — Python & shell (Stage 3.4)
 
 - [x] ABI saved to `abi/InsuranceClaims.json`
 - [x] `scripts/interact.py` runs the full lifecycle
-- [ ] Update `CONTRACT_ADDRESS` in `interact.py` after each new deploy
-- [ ] `scripts/run_demo.sh` — **still empty, needs writing** (shebang, Ganache check, pip install, run script)
-- [ ] `chmod +x scripts/run_demo.sh`
-- [ ] Commit 6 — `Add Python interaction script and demo shell script`
-- [ ] `README.md` — **still empty**: how to run Ganache, deploy, run `run_demo.sh`, reference the screenshots
-- [ ] Commit 7 — `Add README with usage instructions and documentation`
+- [x] Contract address is now configurable (`CONTRACT_ADDRESS` env var / `run_demo.sh` argument)
+- [x] `interact.py` rewritten in English, prints balances before/after and decoded events
+- [x] `scripts/run_demo.sh` — Ganache check, pip install, runs the lifecycle
+- [x] `chmod +x scripts/run_demo.sh` (exec bit also set in git)
+- [x] Commit 6 — `Add Python interaction script and demo shell script`
+- [x] `README.md` — setup, Ganache, Remix deploy, running the demo, expected reverts
+- [x] Commit 7 — `Add README with usage instructions and documentation`
 
 ## Week 5 — Poster (Stage 4 — 20%)
 
