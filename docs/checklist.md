@@ -3,7 +3,7 @@
 ## Week 1 — Environment & repository (Stage 1)
 
 - [x] GitHub repository created — `MikeAlme13/CA--InsuranceClaims`
-- [ ] Add Dr. Muhammad Iqbal as collaborator
+- [x] Dr. Muhammad Iqbal invited as collaborator (invitation sent, awaiting acceptance)
 - [x] Cloned locally in VS Code
 - [x] Folder structure (`contracts/`, `scripts/`, `abi/`, `docs/screenshots/`, `README.md`, `requirements.txt`)
 - [x] Commit 1 — `Initial project structure`
