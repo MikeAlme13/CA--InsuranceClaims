@@ -10,12 +10,20 @@ once the poster is printed at A1.
 Values used throughout, matching `scripts/interact.py` so Remix and the Python
 demo tell the same story:
 
-| Field | Value |
-|---|---|
-| premium | `10` wei |
-| coverage | `100` wei |
-| claim amount | `50` wei |
-| deploy value | `10` Ether |
+| Field | Value to type | Meaning |
+|---|---|---|
+| deploy value | `10`, unit **Ether** | the claims reserve |
+| premium | `1000000000000000000` | 1 ETH |
+| coverage | `5000000000000000000` | 5 ETH |
+| claim amount | `2000000000000000000` | 2 ETH |
+
+> Function arguments in Remix have no unit dropdown, so `premium`, `coverage`
+> and `amount` must be typed in **wei**. Only the **Value** field has a unit
+> selector.
+>
+> These are deliberately ether-scale. With wei-sized amounts the payout is
+> smaller than the gas cost, so account 1's balance in Ganache would go **down**
+> after settlement — the opposite of the evidence step 17 needs to capture.
 
 ---
 
@@ -71,11 +79,11 @@ demo tell the same story:
 10. Still on **account 0**, expand the deployed contract and call
     `createPolicy` with:
     - `holder` = the **account 1** address (copy it from Ganache)
-    - `premium` = `10`
-    - `coverage` = `100`
+    - `premium` = `1000000000000000000`
+    - `coverage` = `5000000000000000000`
 
 11. Switch **Account** to **account 1**.
-12. Set **Value** to `10` **wei**, then call `payPremium`.
+12. Set **Value** to `1` and the unit to **Ether**, then call `payPremium`.
 
 > **`05-paypremium.png`** — the green tick in the Remix terminal for the
 > `payPremium` transaction.
@@ -89,7 +97,7 @@ demo tell the same story:
     Copy the resulting `0x...` value.
 
 14. Call `submitClaim` with:
-    - `amount` = `50`
+    - `amount` = `2000000000000000000`
     - `evidenceHash` = the hash you just copied
 
 > **`06-submitclaim.png`** — the transaction succeeded, with the decoded
@@ -119,13 +127,15 @@ These prove the access control and the guards work. Each one should revert.
 > `Not insurer`.
 
 19. Switch to **account 0**, call `createPolicy` again for account 1 with the
-    same values. Switch to **account 1**, call `payPremium` with `10` wei, then
-    call `submitClaim` with `amount` = `500` (above the coverage of 100).
+    same values. Switch to **account 1**, call `payPremium` with a **Value** of
+    `1` Ether, then call `submitClaim` with `amount` =
+    `9000000000000000000` (9 ETH, above the 5 ETH coverage).
 
 > **`10-revert-exceeds-coverage.png`** — the error containing
 > `Amount exceeds coverage`.
 
-20. Still on **account 1**, call `payPremium` with a **Value** of `7` wei.
+20. Still on **account 1**, call `payPremium` with a **Value** of `7` **wei**
+    (anything other than the exact premium).
 
 > **`11-revert-incorrect-premium.png`** — the error containing
 > `Incorrect premium`.

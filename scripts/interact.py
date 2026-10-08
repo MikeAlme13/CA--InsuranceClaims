@@ -28,9 +28,24 @@ ABI_PATH = ROOT / "abi" / "InsuranceClaims.json"
 GANACHE_URL = "http://127.0.0.1:7545"
 DEFAULT_CONTRACT_ADDRESS = "0x0687ab54002cd89be3c30da43252d4752f70e9fd"
 
-PREMIUM = 10       # wei
-COVERAGE = 100     # wei
-CLAIM_AMOUNT = 50  # wei
+# Amounts are kept at ether scale on purpose. With wei-sized values the payout
+# is dwarfed by gas costs and the policyholder's balance in Ganache goes *down*
+# after settlement, which is the opposite of what the demo needs to show.
+PREMIUM = Web3.to_wei(1, "ether")
+COVERAGE = Web3.to_wei(5, "ether")
+CLAIM_AMOUNT = Web3.to_wei(2, "ether")
+
+
+def eth(wei_value, signed=False):
+    """Format a wei amount as ether. from_wei rejects negatives, so the sign is
+    handled here: balance deltas are routinely negative."""
+    if wei_value < 0:
+        prefix = "-"
+    elif signed:
+        prefix = "+"
+    else:
+        prefix = ""
+    return "{}{} ETH".format(prefix, Web3.from_wei(abs(wei_value), "ether"))
 
 
 def tx_hex(value):
@@ -103,8 +118,8 @@ holder_before = w3.eth.get_balance(policyholder)
 contract_before = w3.eth.get_balance(contract_address)
 
 print("\n=== Balances before ===")
-print("Policyholder: {} wei".format(holder_before))
-print("Contract    : {} wei".format(contract_before))
+print("Policyholder: {}".format(eth(holder_before)))
+print("Contract    : {}".format(eth(contract_before)))
 
 # ---------------------------------------------------------------------------
 # 6. Create the policy (insurer only)
@@ -120,7 +135,7 @@ show_events(contract, "PolicyCreated", receipt)
 # ---------------------------------------------------------------------------
 # 7. Pay the premium (activates the policy)
 # ---------------------------------------------------------------------------
-print("\n=== payPremium (from policyholder, value = {} wei) ===".format(PREMIUM))
+print("\n=== payPremium (from policyholder, value = {}) ===".format(eth(PREMIUM)))
 tx = contract.functions.payPremium().transact(
     {"from": policyholder, "value": PREMIUM}
 )
@@ -141,7 +156,7 @@ print("  keccak256: {}".format(tx_hex(evidence_hash)))
 # ---------------------------------------------------------------------------
 # 9. Submit the claim
 # ---------------------------------------------------------------------------
-print("\n=== submitClaim (from policyholder, {} wei) ===".format(CLAIM_AMOUNT))
+print("\n=== submitClaim (from policyholder, {}) ===".format(eth(CLAIM_AMOUNT)))
 tx = contract.functions.submitClaim(CLAIM_AMOUNT, evidence_hash).transact(
     {"from": policyholder}
 )
@@ -184,10 +199,10 @@ holder_after = w3.eth.get_balance(policyholder)
 contract_after = w3.eth.get_balance(contract_address)
 
 print("\n=== Balances after ===")
-print("Policyholder: {} wei  (change: {:+d})".format(
-    holder_after, holder_after - holder_before))
-print("Contract    : {} wei  (change: {:+d})".format(
-    contract_after, contract_after - contract_before))
+print("Policyholder: {}  (change: {})".format(
+    eth(holder_after), eth(holder_after - holder_before, signed=True)))
+print("Contract    : {}  (change: {})".format(
+    eth(contract_after), eth(contract_after - contract_before, signed=True)))
 
 status = contract.functions.claims(claim_id).call()[4]
 print("\nFinal claim status: {} (3 = Paid)".format(status))
