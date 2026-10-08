@@ -25,19 +25,6 @@ docs/diagrams/                  editable Mermaid sources for the UML diagrams
 docs/screenshots/               UML exports and Remix/Ganache evidence
 ```
 
-## Requirements
-
-- [Ganache GUI](https://github.com/trufflesuite/ganache-ui/releases)
-- Python 3.9 or newer
-- A browser, for [remix.ethereum.org](https://remix.ethereum.org)
-
-Install the Python dependency:
-
-```bash
-pip install -r requirements.txt
-```
-
----
 
 ## 1. Start Ganache
 
