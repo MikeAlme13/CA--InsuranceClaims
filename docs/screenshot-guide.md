@@ -151,8 +151,17 @@ These prove the access control and the guards work. Each one should revert.
 
 > **`13-ganache-blocks.png`** — the **Blocks** tab.
 
-> **`14-ganache-events.png`** — the **Events** tab, showing the emitted
-> `PolicyCreated` / `ClaimSubmitted` / `ClaimDecided` / `ClaimPaid` events.
+**The Ganache Events tab stays empty in Quickstart mode.** Ganache has no ABI
+for the contract, so it cannot decode the logs and shows nothing. The events are
+on the chain regardless. Read them with the ABI instead:
+
+```bash
+python scripts/show_events.py 0xYourContractAddress
+```
+
+> **`14-events.png`** — the output of that command: every `PolicyCreated`,
+> `ClaimSubmitted`, `ClaimDecided` and `ClaimPaid` in block order. This is the
+> audit trail argued for in `docs/design.md` section 4.1.
 
 ---
 
