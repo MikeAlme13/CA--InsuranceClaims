@@ -8,8 +8,8 @@
 - [x] Folder structure (`contracts/`, `scripts/`, `abi/`, `docs/screenshots/`, `README.md`, `requirements.txt`)
 - [x] Commit 1 — `Initial project structure`
 - [x] Ganache GUI installed and running on `http://127.0.0.1:7545`
-- [ ] Remix connected to Ganache (Deploy & Run → Environment → Custom External HTTP Provider → `http://127.0.0.1:7545`)
-- [ ] Ganache accounts visible in Remix
+- [x] Remix connected to Ganache (Deploy & Run → Environment → Custom External HTTP Provider → `http://127.0.0.1:7545`)
+- [x] Ganache accounts visible in Remix
 - [x] `pip install web3`
 - [x] `requirements.txt` lists `web3`
 - [x] Commit — `Add web3 dependency`
@@ -28,16 +28,16 @@
 
 - [x] `contracts/InsuranceClaims.sol` fully implemented (structs, enum, events, constructor, modifier,
       `createPolicy`, `payPremium`, `submitClaim`, `approveClaim`, `rejectClaim`, `payClaim`)
-- [ ] Compile in Remix → screenshot of the green check
-- [ ] Deploy from Ganache account 0 with `value: 10 ether` → screenshot
-- [ ] Happy path from account 1: `payPremium`, `submitClaim(keccak256(doc))` → screenshot
-- [ ] Back on account 0: `approveClaim`, `payClaim` → screenshot of account 1 balance rising in Ganache
-- [ ] Failure tests → screenshots of the reverts:
+- [x] Compile in Remix → screenshot of the green check
+- [x] Deploy from Ganache account 0 with `value: 10 ether` → screenshot
+- [x] Happy path from account 1: `payPremium`, `submitClaim(keccak256(doc))` → screenshot
+- [x] Back on account 0: `approveClaim`, `payClaim` → screenshot of account 1 balance rising in Ganache
+- [x] Failure tests → screenshots of the reverts:
       - account 1 calls `approveClaim` → `"Not insurer"`
       - `submitClaim` with `amount > coverage` → `"Amount exceeds coverage"`
       - `payPremium` with the wrong value → `"Incorrect premium"`
-- [ ] Screenshots of the Ganache **Transactions**, **Blocks** and **Events** tabs
-- [ ] All screenshots saved in `docs/screenshots/` — see `docs/screenshot-guide.md` for the exact steps
+- [x] Ganache **Transactions** and **Blocks** tabs captured; the Events tab is empty in Quickstart mode, so `scripts/show_events.py` was used instead
+- [x] All screenshots saved in `docs/screenshots/` — see `docs/screenshot-guide.md` for the exact steps
 
 ## Weeks 3–4 — Python & shell (Stage 3.4)
 
