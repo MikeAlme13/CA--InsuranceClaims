@@ -24,8 +24,15 @@ demo tell the same story:
 1. Open **Ganache** → **Quickstart**. Leave it running.
 2. Open **remix.ethereum.org**.
 3. Create `contracts/InsuranceClaims.sol` and paste in the contract.
-4. **Solidity Compiler** tab → set the compiler to **0.8.20** or newer →
-   **Compile InsuranceClaims.sol**.
+4. **Solidity Compiler** tab:
+   - **Advanced Configurations** → **EVM Version** → **`paris`**
+   - set the compiler to **0.8.20** or newer
+   - **Compile InsuranceClaims.sol**
+
+   > Leaving the EVM version on `default` produces a *shanghai* build using the
+   > `PUSH0` opcode. Ganache 7.7.3 does not support it, and the deploy in step 8
+   > will fail with an invalid opcode (all gas burnt, `status: 0x0`, no contract
+   > at the address). Set it to `paris` before compiling.
 
 > **`01-compile.png`** — the Solidity Compiler panel with the green tick on the
 > Compile icon and `InsuranceClaims` showing in the CONTRACT dropdown.
@@ -43,6 +50,8 @@ demo tell the same story:
 
 6. **Account** → select **account 0** (this becomes the insurer).
 7. **Value** → `10`, and change the unit dropdown from *wei* to **Ether**.
+   Leaving it on *wei* funds the reserve with 10 wei, and `payClaim` will later
+   revert with `Insufficient funds`.
 8. Click **Deploy**.
 
 > **`03-deploy.png`** — the deployed contract under *Deployed Contracts*, with

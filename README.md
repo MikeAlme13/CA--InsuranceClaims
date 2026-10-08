@@ -51,7 +51,17 @@ Open Ganache and click **Quickstart**. It starts a local chain on
 
 1. Open [remix.ethereum.org](https://remix.ethereum.org).
 2. Create `contracts/InsuranceClaims.sol` and paste in the contract source.
-3. **Solidity Compiler** tab → compile with 0.8.20 or newer.
+3. **Solidity Compiler** tab:
+   - Open **Advanced Configurations** and set **EVM Version** to **`paris`**.
+   - Compile with 0.8.20 or newer.
+
+   > This step is not optional. Ganache 7.7.3 runs the *merge* (Paris) hardfork,
+   > but Solidity 0.8.20+ targets *shanghai* by default and emits the `PUSH0`
+   > opcode, which Ganache cannot execute. Deploying a shanghai build fails with
+   > an invalid opcode: the transaction burns the whole gas limit
+   > (`gasUsed == gasLimit`), the receipt comes back with `status: 0x0`, and no
+   > code is written to the address.
+
 4. **Deploy & Run Transactions** tab:
    - **Environment** → *Custom - External Http Provider* → enter
      `http://127.0.0.1:7545`.
